@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -22,25 +21,20 @@ namespace EventBookingApp.Controllers
         // GET: Bookings
         public async Task<IActionResult> Index()
         {
-            var eventBookingAppContext = _context.Booking.Include(b => b.Event);
-            return View(await eventBookingAppContext.ToListAsync());
+            var bookings = _context.Booking.Include(b => b.Event);
+            return View(await bookings.ToListAsync());
         }
 
         // GET: Bookings/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var booking = await _context.Booking
                 .Include(b => b.Event)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (booking == null)
-            {
-                return NotFound();
-            }
+
+            if (booking == null) return NotFound();
 
             return View(booking);
         }
@@ -48,55 +42,60 @@ namespace EventBookingApp.Controllers
         // GET: Bookings/Create
         public IActionResult Create()
         {
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Id");
+            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title");
             return View();
         }
 
         // POST: Bookings/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,UserName,EventId")] Booking booking)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(booking);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                // Find the event
+                var ev = await _context.Event.FindAsync(booking.EventId);
+                if (ev != null && ev.AvailableSeats > 0)
+                {
+                    // Reduce available seats
+                    ev.AvailableSeats--;
+
+                    // Add booking
+                    _context.Booking.Add(booking);
+
+                    // Save changes
+                    await _context.SaveChangesAsync();
+
+                    return RedirectToAction(nameof(Index));
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Sorry, no seats are available for this event.");
+                }
             }
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Id", booking.EventId);
+
+            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title", booking.EventId);
             return View(booking);
         }
 
         // GET: Bookings/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var booking = await _context.Booking.FindAsync(id);
-            if (booking == null)
-            {
-                return NotFound();
-            }
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Id", booking.EventId);
+            if (booking == null) return NotFound();
+
+            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title", booking.EventId);
             return View(booking);
         }
 
         // POST: Bookings/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,UserName,EventId")] Booking booking)
         {
-            if (id != booking.Id)
-            {
-                return NotFound();
-            }
+            if (id != booking.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -107,36 +106,26 @@ namespace EventBookingApp.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!BookingExists(booking.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!BookingExists(booking.Id)) return NotFound();
+                    else throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Id", booking.EventId);
+
+            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title", booking.EventId);
             return View(booking);
         }
 
         // GET: Bookings/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var booking = await _context.Booking
                 .Include(b => b.Event)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (booking == null)
-            {
-                return NotFound();
-            }
+
+            if (booking == null) return NotFound();
 
             return View(booking);
         }
@@ -150,9 +139,9 @@ namespace EventBookingApp.Controllers
             if (booking != null)
             {
                 _context.Booking.Remove(booking);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

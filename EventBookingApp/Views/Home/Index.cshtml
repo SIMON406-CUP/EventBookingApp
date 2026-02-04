@@ -1,8 +1,42 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model List<EventBookingApp.Models.Event>
+
+@{
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- HERO SECTION -->
+<div class="p-5 text-center text-white rounded mb-5" style="background-image: url('/images/hero.jpg'); background-size: cover; background-position: center;">
+    <h1 class="display-4 fw-bold">Welcome to EventBookingApp</h1>
+    <p class="lead">Book your favorite events quickly and easily!</p>
+    <a class="btn btn-warning btn-lg mt-3" asp-controller="Events" asp-action="Index">View Events</a>
+</div>
+
+<!-- UPCOMING EVENTS -->
+<div class="container">
+    <h2 class="text-center mb-4">Upcoming Events</h2>
+    <div class="row">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="col-12 text-center">
+                <p class="text-muted">No upcoming events. Check back soon!</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var ev in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">@ev.Title</h5>
+                            <p class="card-text"><strong>Location:</strong> @ev.Location</p>
+                            <p class="card-text"><strong>Date:</strong> @ev.Date.ToString("dd MMM yyyy")</p>
+                            <p class="card-text"><strong>Seats Left:</strong> @ev.AvailableSeats</p>
+                            <a class="btn btn-success w-100" asp-controller="Bookings" asp-action="Create" asp-route-eventId="@ev.Id">Book Now</a>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
 </div>
