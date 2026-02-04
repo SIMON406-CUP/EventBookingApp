@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using EventBookingApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContext<EventBookingAppContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("EventBookingAppContext") ?? throw new InvalidOperationException("Connection string 'EventBookingAppContext' not found.")));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
