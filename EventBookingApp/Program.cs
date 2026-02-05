@@ -46,7 +46,7 @@ using (var scope = app.Services.CreateScope())
         context.Event.AddRange(
             new Event { Title = "Music Concert", Location = "City Hall", Date = DateTime.Now.AddDays(5), AvailableSeats = 50 },
             new Event { Title = "Tech Workshop", Location = "Library", Date = DateTime.Now.AddDays(10), AvailableSeats = 30 },
-            new Event { Title = "Art Exhibition", Location = "Gallery", Date = DateTime.Now.AddDays(15), AvailableSeats = 20 }
+            new Event { Title = "Jazz Night Concert", Location = "City Concert Hall", Date = DateTime.Now.AddDays(20), AvailableSeats = 30 }
         );
         context.SaveChanges();
     }

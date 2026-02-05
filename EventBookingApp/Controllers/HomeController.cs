@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using EventBookingApp.Data;
 using EventBookingApp.Models;
-using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 public class HomeController : Controller
 {
@@ -9,23 +10,17 @@ public class HomeController : Controller
 
     public HomeController(EventBookingAppContext context)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _context = context;
     }
 
     public IActionResult Index()
     {
-        var upcomingEvents = _context.Event?
+        // Get upcoming events (today or later), ordered by date
+        var upcomingEvents = _context.Event
                                      .Where(e => e.Date >= DateTime.Now)
                                      .OrderBy(e => e.Date)
-                                     .Take(3)
-                                     .ToList()
-                                     ?? new List<Event>();
+                                     .ToList();
 
-        return View(upcomingEvents);
-    }
-
-    public IActionResult Privacy()
-    {
-        return View();
+        return View(upcomingEvents); // Pass to the view
     }
 }

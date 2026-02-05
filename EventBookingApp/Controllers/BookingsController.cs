@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -25,57 +24,50 @@ namespace EventBookingApp.Controllers
             return View(await bookings.ToListAsync());
         }
 
-        // GET: Bookings/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // GET: Bookings/Create/{eventId}
+        [HttpGet]
+        public IActionResult Create(int eventId)
         {
-            if (id == null) return NotFound();
+            var ev = _context.Event.FirstOrDefault(e => e.Id == eventId);
+            if (ev == null) return NotFound();
 
-            var booking = await _context.Booking
-                .Include(b => b.Event)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            ViewBag.Event = ev;
 
-            if (booking == null) return NotFound();
+            var booking = new Booking
+            {
+                EventId = ev.Id
+            };
 
             return View(booking);
-        }
-
-        // GET: Bookings/Create
-        public IActionResult Create()
-        {
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title");
-            return View();
         }
 
         // POST: Bookings/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,UserName,EventId")] Booking booking)
+        public async Task<IActionResult> Create([Bind("Id,Name,Email,SeatsBooked,EventId")] Booking booking)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return View(booking);
+
+            var ev = await _context.Event.FindAsync(booking.EventId);
+            if (ev == null)
             {
-                // Find the event
-                var ev = await _context.Event.FindAsync(booking.EventId);
-                if (ev != null && ev.AvailableSeats > 0)
-                {
-                    // Reduce available seats
-                    ev.AvailableSeats--;
-
-                    // Add booking
-                    _context.Booking.Add(booking);
-
-                    // Save changes
-                    await _context.SaveChangesAsync();
-
-                    return RedirectToAction(nameof(Index));
-                }
-                else
-                {
-                    ModelState.AddModelError("", "Sorry, no seats are available for this event.");
-                }
+                ModelState.AddModelError("", "Event not found.");
+                return View(booking);
             }
 
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title", booking.EventId);
-            return View(booking);
+            if (booking.SeatsBooked > ev.AvailableSeats)
+            {
+                ModelState.AddModelError("", "Not enough seats available.");
+                return View(booking);
+            }
+
+            // Reduce available seats
+            ev.AvailableSeats -= booking.SeatsBooked;
+
+            _context.Booking.Add(booking);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Bookings/Edit/5
@@ -93,27 +85,24 @@ namespace EventBookingApp.Controllers
         // POST: Bookings/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,UserName,EventId")] Booking booking)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Email,SeatsBooked,EventId")] Booking booking)
         {
             if (id != booking.Id) return NotFound();
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid) return View(booking);
+
+            try
             {
-                try
-                {
-                    _context.Update(booking);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!BookingExists(booking.Id)) return NotFound();
-                    else throw;
-                }
-                return RedirectToAction(nameof(Index));
+                _context.Update(booking);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Booking.Any(e => e.Id == booking.Id)) return NotFound();
+                else throw;
             }
 
-            ViewData["EventId"] = new SelectList(_context.Event, "Id", "Title", booking.EventId);
-            return View(booking);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Bookings/Delete/5
@@ -145,9 +134,18 @@ namespace EventBookingApp.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool BookingExists(int id)
+        // GET: Bookings/Details/5
+        public async Task<IActionResult> Details(int? id)
         {
-            return _context.Booking.Any(e => e.Id == id);
+            if (id == null) return NotFound();
+
+            var booking = await _context.Booking
+                .Include(b => b.Event)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (booking == null) return NotFound();
+
+            return View(booking);
         }
     }
 }
